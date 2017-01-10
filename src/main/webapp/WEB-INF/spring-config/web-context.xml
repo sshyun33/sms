@@ -9,7 +9,6 @@
 
     <mvc:annotation-driven/>
     <context:component-scan base-package="sms" >
-        <context:exclude-filter type="assignable" expression="sms.spring.config.DBConfig"/>
         <context:exclude-filter type="assignable" expression="sms.spring.security.SecurityConfig"/>
     </context:component-scan>
 

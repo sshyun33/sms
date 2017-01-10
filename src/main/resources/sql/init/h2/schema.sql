@@ -5,3 +5,4 @@ CREATE TABLE IF NOT EXISTS users (
   name VARCHAR(30),
   email  VARCHAR(50)
 );
+

@@ -71,6 +71,11 @@ dependencies {
     compile 'org.springframework.security:spring-security-config'
     compile 'org.springframework.security:spring-security-web'
 
+    // Spring JPA Dependencies
+    compile 'org.springframework:spring-orm'
+    compile 'org.hibernate:hibernate-entitymanager'
+    compile 'org.springframework.data:spring-data-jpa'
+
     // Database Connector Dependencies
     compile 'com.zaxxer:HikariCP'
     compile 'com.h2database:h2'

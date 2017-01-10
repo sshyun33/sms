@@ -1,38 +1,24 @@
-package sms.spring.config;
+package sms.spring.config.persistence;
 
 import com.zaxxer.hikari.HikariDataSource;
-import org.apache.ibatis.session.SqlSessionFactory;
-import org.mybatis.spring.SqlSessionFactoryBean;
-import org.mybatis.spring.SqlSessionTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.context.annotation.PropertySources;
+import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.init.DataSourceInitializer;
 import org.springframework.jdbc.datasource.init.DatabasePopulator;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import javax.sql.DataSource;
 
 @Configuration
-@EnableTransactionManagement
 @PropertySources({
-        @PropertySource(value = "classpath:properties/application-dev.properties"),
+        @PropertySource(value = "classpath:properties/application-default.properties"),
         @PropertySource(value = "classpath:properties/application-${spring.profiles.active}.properties",
                 ignoreResourceNotFound = true)
 })
-public class DBConfig {
-
-    @Autowired
-    private Environment env;
+public class DatasourceConfig {
 
     @Value("${db.init.schema}")
     private Resource INIT_SCHEMA_SCRIPT;
@@ -40,9 +26,18 @@ public class DBConfig {
     @Value("${db.init.data}")
     private Resource INIT_DATA_SCRIPT;
 
-    // DataSource
+    @Value("${db.clean.schema}")
+    private Resource CLEAN_SCHEMA_SCRIPT;
+
+    private final Environment env;
+
+    @Autowired
+    public DatasourceConfig(Environment env) {
+        this.env = env;
+    }
+
     @Bean
-    DataSource dataSource() {
+    public DataSource dataSource() {
         HikariDataSource ds = new HikariDataSource();
         ds.setDriverClassName(env.getProperty("db.driver"));
         ds.setJdbcUrl(env.getProperty("db.url"));
@@ -69,12 +64,13 @@ public class DBConfig {
     }
 
     @Bean
+    @Profile("!production")
     public DataSourceInitializer dataSourceInitializer(final DataSource dataSource) {
 
         final DataSourceInitializer initializer = new DataSourceInitializer();
         initializer.setDataSource(dataSource);
         initializer.setDatabasePopulator(databasePopulator());
-//        initializer.setDatabaseCleaner(databaseCleaner());
+        initializer.setDatabaseCleaner(databaseCleaner());
         return initializer;
     }
 
@@ -85,25 +81,9 @@ public class DBConfig {
         return populator;
     }
 
-    // Transaction
-    @Bean
-    public PlatformTransactionManager transactionManager(final DataSource dataSource) {
-        return new DataSourceTransactionManager(dataSource);
-    }
-
-    // Mybatis
-    @Bean
-    public SqlSessionFactory sqlSessionFactory(final DataSource dataSource) throws Exception {
-        SqlSessionFactoryBean sqlSessionFactory = new SqlSessionFactoryBean();
-        sqlSessionFactory.setDataSource(dataSource);
-        sqlSessionFactory.setMapperLocations(
-                new PathMatchingResourcePatternResolver()
-                        .getResources(env.getProperty("db.mapper.location")));
-        return sqlSessionFactory.getObject();
-    }
-
-    @Bean
-    public SqlSessionTemplate sqlSession(SqlSessionFactory sqlSessionFactory) throws Exception {
-        return new SqlSessionTemplate(sqlSessionFactory);
+    private DatabasePopulator databaseCleaner() {
+        final ResourceDatabasePopulator cleaner = new ResourceDatabasePopulator();
+        cleaner.addScript(CLEAN_SCHEMA_SCRIPT);
+        return cleaner;
     }
 }
